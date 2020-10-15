@@ -17,6 +17,12 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+./configure --target-list=tricore-softmmu
+make -j 4
+./tricore-softmmu/qemu-system-tricore --machine tricore_testboard -nographic -D /tmp/qemu.log -d in_asm,out_asm,op,cpu,exec,mmu -singlestep
+*/
+
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "qapi/error.h"
@@ -57,6 +63,7 @@ static struct memory_region memory_regions[] = {
 static int num_memory_regions = sizeof(memory_regions) / sizeof(struct memory_region);
 
 #define SBOOT_SIZE 0x8000
+#define SBOOT_START 0x80000000
 #define ENTRY_POINT 0x80000020
 
 static void tricoreboard_init(MachineState *machine)
@@ -77,11 +84,13 @@ static void tricoreboard_init(MachineState *machine)
     }
     // load into memory
     FILE *fp = fopen("sboot.bin", "rb");
+    int fd = fileno(fp);
     uint8_t *buf = malloc(SBOOT_SIZE);
     fread(buf, SBOOT_SIZE, 1, fp);
-    for (int i = 0; i < SBOOT_SIZE; ++i) {
-      // TODO: write buf[i]
-    }
+    int prot = 0;
+    int flags = 0;
+    int offset = 0;
+    target_mmap(SBOOT_START, SBOOT_SIZE, prot, flags, fd, offset);
     free(buf);
     fclose(fp);
     // set entry point
