@@ -24,6 +24,7 @@
 #include "exec/exec-all.h"
 #include "tcg/tcg-op.h"
 #include "exec/cpu_ldst.h"
+#include "exec/address-spaces.h"
 #include "qemu/qemu-print.h"
 
 #include "exec/helper-proto.h"
@@ -8800,13 +8801,35 @@ static void tricore_tr_init_disas_context(DisasContextBase *dcbase,
     ctx->features = env->features;
 }
 
-static void tricore_tr_tb_start(DisasContextBase *db, CPUState *cpu)
+static void tricore_tr_tb_start(DisasContextBase *dcbase, CPUState *cs)
 {
 }
 
-static void tricore_tr_insn_start(DisasContextBase *dcbase, CPUState *cpu)
+static void tricore_tr_insn_start(DisasContextBase *dcbase, CPUState *cs)
 {
     DisasContext *ctx = container_of(dcbase, DisasContext, base);
+
+    CPUTriCoreState *env = cs->env_ptr;
+    printf("%08x\n", env->PC);
+    if (env->PC == 0x70100e0c) {
+        MemoryRegion *sysmem = get_system_memory();
+        MemoryRegion *subregion;
+        QTAILQ_FOREACH(subregion, &sysmem->subregions, subregions_link) {
+            if (strcmp(subregion->name, "CPU0_DSPR") == 0) {
+                uint8_t *data = memory_region_get_ram_ptr(subregion);
+                uint32_t start = 0x70000000;
+                uint32_t address = 0x70001b7c;
+                uint32_t offset = address - start;
+                for (int i = 0; i < 4; ++i) {
+                    printf("%02x", data[offset + i]);
+                }
+            }
+        }
+        printf("\n");
+    }
+    if (env->PC == 0x80001e8e) {
+        exit(1);
+    }
 
     tcg_gen_insn_start(ctx->base.pc_next);
 }

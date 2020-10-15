@@ -13,5 +13,6 @@ struct memory_region {
   uint32_t start;
   uint32_t end;
   uint32_t size;
+  uint8_t *mr;
 };
 #endif
